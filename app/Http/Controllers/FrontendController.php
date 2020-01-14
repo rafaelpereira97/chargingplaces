@@ -33,6 +33,6 @@ ORDER BY distance ASC");
         $chargeplace->location = new Point($request->latitude, $request->longitude);	// (lat, lng)
         $chargeplace->save();
 
-        return redirect()->back()->with('success', 'O Posto de Carregamento foi Adicionado com Sucesso !');
+        return response()->json(json_encode([$request->latitude, $request->longitude]));
     }
 }

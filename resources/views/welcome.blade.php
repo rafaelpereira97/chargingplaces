@@ -39,9 +39,14 @@
         Área Admin
     </a>
 </nav>
-<div class="row">
-<div class="col-md-2">
-    <h3>Postos em 5Km</h3>
+
+    <div class="container-fluid">
+        <div class="row">
+<div style="  height:900px;
+  overflow-y: scroll;" class="col-md-2">
+    <br>
+    <h5 align="center">Postos perto de Si</h5>
+    <br>
 
     <ul id="nearbylist" class="list-group">
     </ul>
@@ -49,6 +54,7 @@
 <div class="col-md-10">
 <div id="mapid"></div>
 </div>
+    </div>
 </div>
 <script
     src="https://code.jquery.com/jquery-3.4.1.js"
@@ -81,7 +87,7 @@
                     lat = lat.replace("POINT(","");
                     lat = lat.replace(")","");
                     lat = lat.split(" ");
-                    $("#nearbylist").append('<li class="list-group-item">'+data[k].name+' <a id="fly" data-lat="'+lat[0]+'" data-lng="'+lat[1]+'" href="#"> CLICK </a> <span style="float: right;">KM:'+data[k].distance+ '</span></li>');
+                    $("#nearbylist").append('<li class="list-group-item">'+data[k].name+' <a id="fly" data-lat="'+lat[0]+'" data-lng="'+lat[1]+'" href="#"> <img title="Zoom no Ponto" style="width: 20px" class="img img-responsive" src="'+window.location+'images/maplocation.png"> </a> <span style="float: right;">KM:'+data[k].distance+ '</span></li>');
                 });
             }
         });
@@ -145,6 +151,7 @@
             }));
         @endforeach
 
+
         //Abrir Google maps para navegar até um posto
         group.on("click", function (event) {
             var clickedMarker = event.layer;
@@ -169,6 +176,33 @@
         $("#latitude").val(e.latlng.lat);
         $("#longitude").val(e.latlng.lng);
     }
+
+
+        $('#formAddPoint').on('submit', function (e) {
+            e.preventDefault();
+
+            var form = $(this);
+            var url = form.attr('action');
+
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: form.serialize(), // serializes the form's elements.
+                success: function(data)
+                {
+                    $('#modal').modal('toggle');
+                    var lat = form.serializeArray()[2].value;
+                    var lng = form.serializeArray()[3].value;
+                    group.addLayer(L.marker([lat, lng], {icon: MyIcon}));
+                    $('#nearbylist').empty();
+                    getNearbyMarkers();
+                }
+            });
+
+
+
+        });
+
     });
 </script>
 
@@ -207,26 +241,6 @@
     </div>
 </div>
 <!-- Optional JavaScript -->
-<script>
-    $( document ).ready(function() {
-        $('#formAddPoint').on('submit', function (e) {
-            e.preventDefault();
-
-            var form = $(this);
-            var url = form.attr('action');
-
-            $.ajax({
-                type: "POST",
-                url: url,
-                data: form.serialize(), // serializes the form's elements.
-                success: function(data)
-                {
-                    $('#modal').modal('close');
-                }
-            });
-        });
-    });
-</script>
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
 
 </body>
