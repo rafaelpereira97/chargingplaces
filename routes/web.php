@@ -14,6 +14,8 @@
 Route::get('/', 'FrontendController@index')->name('index');
 Route::post('/addPlace', 'FrontendController@addPlace')->name('addplace');
 Route::post('/nearPlaces', 'FrontendController@getNearbyChargers')->name('nearplaces');
+Route::post('/createPolygon', 'FrontendController@createPolygon')->name('createPolygon');
+
 
 Route::group(['prefix' => 'admin'], function () {
     Voyager::routes();

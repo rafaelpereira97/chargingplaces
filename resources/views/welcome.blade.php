@@ -83,7 +83,6 @@
                 var data = JSON.parse(response);
                 $.each(data, function(k, v) {
                     var lat = data[k].point;
-                    // Atençao martelada
                     lat = lat.replace("POINT(","");
                     lat = lat.replace(")","");
                     lat = lat.split(" ");
@@ -104,6 +103,7 @@
             'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
         id: 'mapbox/streets-v11'
     }).addTo(mymap);
+
 
         $(document).on('click','#fly',function() {
             flyToLatLng( $(this).attr("data-lng"), $(this).attr("data-lat"))
@@ -138,6 +138,7 @@
             shadowAnchor: [4, 62],  // the same for the shadow
             popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
         });
+
         group = new L.FeatureGroup();
         @foreach($points as $point)
             @php
@@ -149,6 +150,94 @@
                     return L.marker(latlng,{icon: MyIcon});
                 }
             }));
+        @endforeach
+
+            polygroup = new L.FeatureGroup();
+        @foreach($polypoints as $point)
+        @php
+            $point = json_encode($point->area);
+        @endphp
+        polygroup.addLayer(L.geoJSON({!! $point !!}));
+            @endforeach
+
+
+        var drawnItems = new L.FeatureGroup();
+        mymap.addLayer(drawnItems);
+        var drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems
+            }
+        });
+
+        //ON CREATED
+        mymap.on('draw:created', function (e) {
+            if(e.layerType === "marker"){
+            var marker = e.layer;
+            var lat = marker._latlng.lat;
+            var lng = marker._latlng.lng;
+            $('#modal').modal('show');
+            $("#latitude").val(lat);
+            $("#longitude").val(lng);
+            }
+            if(e.layerType === "polygon"){
+                var polygon = e.layer._latlngs[0];
+                $.ajax({
+                    type: "POST",
+                    url: "{{route('createPolygon')}}",
+                    data: {
+                        _token: "{{csrf_token()}}",
+                        poligono: JSON.stringify(polygon),
+                    },
+                    success: function(data)
+                    {
+                        alert('Poligono criado!');
+                        var poly = L.polygon(polygon).addTo(mymap);
+                    }
+                });
+            }
+        });
+        //ON DELETED
+        mymap.on('draw:deleted', function (e) {
+            alert(e);
+        });
+
+        mymap.addControl(drawControl);
+
+            @foreach($files as $file)
+                @php
+                    $file = (json_decode($file->file))[0]->download_link;
+                @endphp
+        @if(\File::extension($file) == "kml")
+                fetch("{{Voyager::image($file)}}")
+                    .then(res => res.text())
+                    .then(kmltext => {
+                        // Create new kml overlay
+                        const parser = new DOMParser();
+                        const kml = parser.parseFromString(kmltext, 'text/xml');
+                        const track = new L.KML(kml);
+                        mymap.addLayer(track);
+
+                        // Adjust map to show the kml
+                        const bounds = track.getBounds();
+                        mymap.fitBounds(bounds);
+                    });
+
+            @php
+                $file = (json_decode($file->file))[0]->download_link;
+            @endphp
+            @elseif((\File::extension($file) == "kmz"))
+        var kmzParser = new L.KMZParser({
+                onKMZLoaded: function(layer, name) {
+                    control.addOverlay(layer, name);
+                    layer.addTo(map);
+                }
+            });
+
+        kmzParser.load("{{Voyager::image($file)}}");
+
+        var control = L.control.layers(null, null, { collapsed:false }).addTo(mymap);
+
+            @endif
         @endforeach
 
 
@@ -163,19 +252,21 @@
             };
 
         var overlayMaps = {
-                "Pontos de Abastecimento Elétrico": group
+                "Pontos de Abastecimento Elétrico": group,
+                "Parques de Estacionamento": polygroup
+
         };
 
         L.control.layers(baseMaps, overlayMaps).addTo(mymap);
 
 
-    mymap.on('click', OpenNewChargePointModal);
-
-        function OpenNewChargePointModal(e){
-        $('#modal').modal('show');
-        $("#latitude").val(e.latlng.lat);
-        $("#longitude").val(e.latlng.lng);
-    }
+    // mymap.on('click', OpenNewChargePointModal);
+    //
+    //     function OpenNewChargePointModal(e){
+    //     $('#modal').modal('show');
+    //     $("#latitude").val(e.latlng.lat);
+    //     $("#longitude").val(e.latlng.lng);
+    // }
 
 
         $('#formAddPoint').on('submit', function (e) {
@@ -198,12 +289,9 @@
                     getNearbyMarkers();
                 }
             });
-
-
-
         });
-
     });
+
 </script>
 
 <div id="modal" class="modal" tabindex="-1" role="dialog">

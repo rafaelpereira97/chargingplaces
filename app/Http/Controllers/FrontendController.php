@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Chargeplace;
 use App\File;
+use App\Polygonplace;
+use Grimzy\LaravelMysqlSpatial\Types\LineString;
+use Grimzy\LaravelMysqlSpatial\Types\Polygon;
 use Illuminate\Http\Request;
 use Grimzy\LaravelMysqlSpatial\Types\Point;
 use Illuminate\Support\Facades\DB;
@@ -12,9 +15,11 @@ class FrontendController extends Controller
     public function index(){
         $points = Chargeplace::all();
         $files = File::all();
+        $polypoints = Polygonplace::all();
         return view('welcome')
             ->with('files',$files)
-            ->with('points',$points);
+            ->with('points',$points)
+            ->with('polypoints',$polypoints);
     }
 
     public function getNearbyChargers(Request $request){
@@ -34,5 +39,25 @@ ORDER BY distance ASC");
         $chargeplace->save();
 
         return response()->json(json_encode([$request->latitude, $request->longitude]));
+    }
+
+    public function createPolygon(Request $request){
+        $latlngs = json_decode($request->poligono);
+
+        $place1 = new Polygonplace();
+        $place1->name = 'teste';
+        $arrayOfPoints = [];
+        $linestring = new LineString([]);
+        foreach($latlngs as $index => $point){
+            if($index == 0){
+                $lat = $point->lat;
+                $lng = $point->lng;
+            }
+            $linestring->appendPoint(new Point($point->lat,$point->lng));
+        }
+        $linestring->appendPoint(new Point($lat,$lng));
+        $place1->area = new Polygon([$linestring]);
+        $place1->save();
+        return response()->json('Sucesso', 200);
     }
 }
